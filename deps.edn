@@ -1,7 +1,9 @@
 {:paths ["src"]
- :deps {org.clojars.clj-clapps/clj-clapps {:mvn/version "0.4.13"}
-        com.github.seancorfield/next.jdbc {:mvn/version "1.3.874"}
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        org.clojure/core.async {:mvn/version "1.6.673"}
+        org.clojars.clj-clapps/clj-clapps {:mvn/version "0.4.12"}
+        org.clojure/java.jdbc {:mvn/version "0.7.12"}
         mysql/mysql-connector-java {:mvn/version "8.0.19"}
         org.postgresql/postgresql {:mvn/version "42.2.10"}
         org.xerial/sqlite-jdbc {:mvn/version "3.39.2.1"}
-        io.github.rinconjc/clj-result {:git/sha "06fd72e"}}}
+        io.github.rinconjc/clj-result {:git/sha "88c167c7fd01523d6940ff86fbff2703ff673c9a"}}}

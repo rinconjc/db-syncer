@@ -12,6 +12,12 @@
         :env "DB_SYNC_SRC_DB"
         :parse-fn db/db-spec
         :short "-s"} source-db
+      ^{:doc "source db username, defaults to environment variable DB_SYNC_SRC_USER"
+       :env "DB_SYNC_SRC_USER"
+       :long "--su"} source-db-user
+      ^{:doc "source db password, defaults to environment variable DB_SYNC_SRC_PASS"
+       :env "DB_SYNC_SRC_PASS"
+       :long "--sp"} source-db-pass
       ^{:doc "dest db URL, defaults to environment variable DB_SYNC_DEST_DB"
         :env "DB_SYNC_DEST_DB"
         :parse-fn db/db-spec
