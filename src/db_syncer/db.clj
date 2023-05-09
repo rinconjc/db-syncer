@@ -1,6 +1,8 @@
 (ns db-syncer.db
   (:require
-   [clojure.java.jdbc :as jdbc])
+   [clojure.java.jdbc :as jdbc]
+   [db-syncer.specs :refer [db-types?]]
+   [result.core :as result])
   (:import
    (java.lang Runnable)
    (java.util.concurrent ArrayBlockingQueue ThreadPoolExecutor TimeUnit)))
@@ -8,15 +10,13 @@
 (def ^:dynamic *chunk-size* 100)
 (def ^:dynamic *max-workers* 10)
 
-(defn db-spec [s]
-  (when-let [[_ dbtype] (re-matches #"jdbc:([^:]+):.+" s)]
-    {:dbtype (keyword dbtype) :db-url s}))
-
-(defmulti db-conn :dbtype)
-
-(defmethod db-conn :default
-  [db-spec]
-  (jdbc/get-connection db-spec))
+(defn db-spec [s user pass]
+  (if-let [[_ dbtype] (re-matches #"jdbc:([^:]+):.+" s)]
+    (as-> (keyword dbtype) dbtype
+      (if (db-types? dbtype)
+        (result/ok {:dbtype dbtype :connection-uri s :user user :password pass})
+        (result/error (str "Unsupported dbtype " dbtype))))
+    (result/error (str "Invalid DB Url: " s))))
 
 (defprotocol DbClient
   (table-def [this table])
@@ -31,9 +31,18 @@
                       (.getTables nil nil table (into-array ["TABLE" "VIEW"])))))
 
    :table-first-chunk  (fn [this table]
-                         (with-open [con (jdbc/get-connection (.-ds this))]
-                           ))
+                         (with-open [con (jdbc/get-connection (.-ds this))]))
    :table-next-chunk (fn [this table prev-row])})
+
+(deftype GenericClient [db-spec])
+
+(extend GenericClient DefaultClient)
+
+(defmulti db-client :dbtype)
+
+(defmethod db-client :default
+  [db-spec]
+  (jdbc/get-connection db-spec))
 
 (deftype PostgresClient [ds])
 
