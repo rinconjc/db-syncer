@@ -6,4 +6,4 @@
         mysql/mysql-connector-java {:mvn/version "8.0.19"}
         org.postgresql/postgresql {:mvn/version "42.2.10"}
         org.xerial/sqlite-jdbc {:mvn/version "3.39.2.1"}
-        io.github.rinconjc/clj-result {:git/sha "88c167c7fd01523d6940ff86fbff2703ff673c9a"}}}
+        io.github.rinconjc/clj-result {:git/sha "63ed711670992176c9204f47343214d4cbb5ef56"}}}
