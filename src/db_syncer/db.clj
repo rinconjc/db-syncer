@@ -2,7 +2,7 @@
   (:require
    [clojure.java.jdbc :as jdbc]
    [db-syncer.specs :refer [db-types?]]
-   [result.core :as result]
+   [result.core :as r]
    [clojure.string :as str])
   (:import
    (java.lang Runnable)
@@ -15,9 +15,9 @@
   (if-let [[_ dbtype] (re-matches #"jdbc:([^:]+):.+" s)]
     (as-> (keyword dbtype) dbtype
       (if (db-types? dbtype)
-        (result/ok {:dbtype dbtype :connection-uri s :user user :password pass})
-        (result/error (str "Unsupported dbtype " dbtype))))
-    (result/error (str "Invalid DB Url: " s))))
+        (r/ok {:dbtype dbtype :connection-uri s :user user :password pass})
+        (r/error (str "Unsupported dbtype " dbtype))))
+    (r/error (str "Invalid DB Url: " s))))
 
 (defprotocol DbClient
   (table-def [this table])
@@ -36,18 +36,27 @@
   (str/join "," (map :column_name (:pk table))))
 
 (defn- key-vals [table row]
-  (map-indexed #(first %) (:pk table)))
+  (if row
+    (map (fn [idx] (nth row idx)) (:pk-indexes table))
+    []))
 
 (def DefaultClient
   {:table-def
    (fn [this table]
-     (result/result-of
+     (r/result-of
       (jdbc/with-db-metadata [meta (.-ds this)]
         (let [cols (jdbc/metadata-query (.getColumns meta nil nil table nil))]
           (if (empty? cols)
-            (result/error "Invalid table or table with no columns")
-            {:name table :cols cols
-             :pk (jdbc/metadata-query (.getPrimaryKeys meta nil nil table))})))))
+            (r/error "Invalid table or table with no columns")
+            (let [pk-cols (jdbc/metadata-query (.getPrimaryKeys meta nil nil table))]
+              {:name table :cols cols :pk pk-cols
+               :pk-indexes (map
+                            (fn [kc]
+                              (some
+                               #(when (= (:column_name kc) (:column_name (second %)))
+                                  (first %))
+                               (->> (map-indexed (fn [idx val] [idx val]) cols))))
+                            pk-cols)}))))))
 
    :table-chunk
    (fn [this table [min-row max-row] limit]
@@ -56,7 +65,9 @@
                        (sql-where-key table min-row :>)
                        (sql-where-key table max-row :<)
                        (key-cols table))]
-       (jdbc/query (.-ds this) (vec (flatten [sql (key-vals table min-row) (key-vals table max-row) limit])) {:as-arrays? true})))})
+       (jdbc/query (.-ds this)
+                   (vec (flatten [sql (key-vals table min-row) (key-vals table max-row) limit]))
+                   {:as-arrays? true})))})
 
 (deftype GenericClient [ds])
 
